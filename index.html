@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Blog شخصي</title>
+<meta name="description" content="Blog شخصي — موقع منشور بواسطة Webly" />
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: { extend: { fontFamily: { sans: ['Cairo', 'Inter', 'system-ui', 'sans-serif'] } } }
+  };
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body, #root { margin: 0; min-height: 100%; }
+  body { font-family: 'Cairo', 'Inter', system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; background: #0f172a; color: #f8fafc; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+    "react/jsx-dev-runtime": "https://esm.sh/react@18.3.1/jsx-dev-runtime",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "react-router-dom": "https://esm.sh/react-router-dom@6.26.2?deps=react@18.3.1,react-dom@18.3.1",
+    "lucide-react": "https://esm.sh/lucide-react@0.468.0?deps=react@18.3.1",
+    "framer-motion": "https://esm.sh/framer-motion@11.11.17?deps=react@18.3.1,react-dom@18.3.1",
+    "clsx": "https://esm.sh/clsx@2.1.1",
+    "zustand": "https://esm.sh/zustand@5.0.1?deps=react@18.3.1",
+    "zustand/": "https://esm.sh/zustand@5.0.1/",
+    "recharts": "https://esm.sh/recharts@2.13.3?deps=react@18.3.1,react-dom@18.3.1",
+    "date-fns": "https://esm.sh/date-fns@4.1.0",
+    "nanoid": "https://esm.sh/nanoid@5.0.9"
+  }
+}
+</script>
+<script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+  // ───── Report runtime errors to parent (Webly editor) ─────
+  (function(){
+    function send(payload){ try { parent.postMessage({ __webly_runtime__: true, ...payload }, '*'); } catch(_){} }
+    window.addEventListener('error', function(e){
+      send({ kind: 'error', message: e.message || String(e.error || 'error'), source: e.filename, line: e.lineno, col: e.colno, stack: e.error && e.error.stack });
+    });
+    window.addEventListener('unhandledrejection', function(e){
+      var r = e.reason;
+      send({ kind: 'unhandledrejection', message: (r && (r.message || String(r))) || 'unhandled rejection', stack: r && r.stack });
+    });
+    var origErr = console.error;
+    console.error = function(){
+      try { send({ kind: 'console_error', message: Array.from(arguments).map(function(a){ return typeof a==='string'?a:(a&&a.message)||JSON.stringify(a); }).join(' ') }); } catch(_){}
+      origErr.apply(console, arguments);
+    };
+  })();
+</script>
+<script>
+  // ───── Webly runtime config ─────
+  window.__WEBLY__ = {
+    projectId: "ae530924-faf2-4547-ae7f-aea5a38307c8",
+    apiBase: "https://wxphtsgezburjqoqiqqo.supabase.co/functions/v1/webly-app-api/ae530924-faf2-4547-ae7f-aea5a38307c8",
+    proxyBase: "https://wxphtsgezburjqoqiqqo.supabase.co/functions/v1/webly-proxy/ae530924-faf2-4547-ae7f-aea5a38307c8",
+  };
+  window.__SUPABASE_CONFIG__ = null;
+
+  // ───── Session id for app data ownership ─────
+  if (!localStorage.getItem('webly_session')) {
+    localStorage.setItem('webly_session', 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36));
+  }
+  const _sess = localStorage.getItem('webly_session');
+
+  // ───── Single fetch interceptor: rewrite /api/data/* and /api/proxy/* ─────
+  (function(){
+    const origFetch = window.fetch.bind(window);
+    function aliasField(obj, target, sources){
+      if (!obj || typeof obj !== 'object') return;
+      if (obj[target] != null) return;
+      for (const s of sources) { if (obj[s] != null) { obj[target] = obj[s]; return; } }
+    }
+    function normalizeRecord(r){
+      if (!r || typeof r !== 'object') return r;
+      // Cross-name aliases so AI-generated apps don't crash on missing fields
+      aliasField(r, 'name',        ['title','label','product_name','heading']);
+      aliasField(r, 'title',       ['name','label']);
+      aliasField(r, 'image',       ['image_url','img','imageUrl','photo','picture','thumbnail']);
+      aliasField(r, 'image_url',   ['image','img','imageUrl','photo','picture','thumbnail']);
+      aliasField(r, 'imageUrl',    ['image_url','image']);
+      aliasField(r, 'description', ['desc','details','body','content']);
+      aliasField(r, 'price',       ['cost','amount']);
+      aliasField(r, 'category',    ['type','tag','collection']);
+      return r;
+    }
+    async function maybeNormalize(res){
+      try {
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) return res;
+        const cloned = res.clone();
+        const data = await cloned.json();
+        let next;
+        if (Array.isArray(data)) next = data.map(normalizeRecord);
+        else next = normalizeRecord(data);
+        return new Response(JSON.stringify(next), { status: res.status, statusText: res.statusText, headers: res.headers });
+      } catch(_){ return res; }
+    }
+    window.fetch = function(input, init){
+      try {
+        let url = typeof input === 'string' ? input : (input && input.url) || '';
+        let isApiData = false;
+        let newInput = input;
+        if (typeof url === 'string') {
+          if (url.startsWith('/api/data/')) {
+            const newUrl = window.__WEBLY__.apiBase + '/data' + url.replace(/^\/api\/data/, '');
+            newInput = (typeof input === 'string') ? newUrl : new Request(newUrl, input);
+            isApiData = true;
+          } else if (url.startsWith('/api/proxy/')) {
+            const newUrl = window.__WEBLY__.proxyBase + url.replace(/^\/api\/proxy/, '');
+            newInput = (typeof input === 'string') ? newUrl : new Request(newUrl, input);
+          }
+        }
+        init = init || {};
+        const headers = new Headers(init.headers || (typeof input !== 'string' ? input.headers : undefined));
+        if (!headers.has('x-webly-session')) headers.set('x-webly-session', _sess);
+        init.headers = headers;
+        const p = origFetch(newInput, init);
+        return isApiData ? p.then(maybeNormalize) : p;
+      } catch(_) {
+        return origFetch(input, init);
+      }
+    };
+  })();
+
+  // ───── Built-in Supabase-compatible client (always available) ─────
+  // Generated apps can call window.supabase.from('x').select() with ZERO setup.
+  // - If the user linked their own Supabase project (via "اتصالات"), we use it.
+  // - Otherwise we expose a stub that proxies CRUD to /api/data/<table>.
+  // This guarantees no app ever shows "لم يتم تكوين قاعدة البيانات".
+  (function(){
+    function buildQuery(table){
+      const filters = [];
+      const state = { order: null, limit: null, single: false, range: null };
+      const api = {};
+      function clone(){ return Object.assign({}, api); }
+      api.select = function(){ return clone(); };
+      api.eq      = function(col, val){ filters.push({ op:'eq', col, val }); return clone(); };
+      api.neq     = function(col, val){ filters.push({ op:'neq', col, val }); return clone(); };
+      api.gt      = function(col, val){ filters.push({ op:'gt', col, val }); return clone(); };
+      api.gte     = function(col, val){ filters.push({ op:'gte', col, val }); return clone(); };
+      api.lt      = function(col, val){ filters.push({ op:'lt', col, val }); return clone(); };
+      api.lte     = function(col, val){ filters.push({ op:'lte', col, val }); return clone(); };
+      api.like    = function(col, val){ filters.push({ op:'like', col, val }); return clone(); };
+      api.ilike   = function(col, val){ filters.push({ op:'ilike', col, val }); return clone(); };
+      api['in']   = function(col, vals){ filters.push({ op:'in', col, vals }); return clone(); };
+      api.match   = function(obj){ Object.keys(obj||{}).forEach(function(k){ filters.push({ op:'eq', col:k, val:obj[k] }); }); return clone(); };
+      api.order   = function(col, opts){ state.order = { col: col, asc: !(opts && opts.ascending === false) }; return clone(); };
+      api.limit   = function(n){ state.limit = n; return clone(); };
+      api.range   = function(from, to){ state.range = [from, to]; return clone(); };
+      api.single  = function(){ state.single = true; return clone(); };
+      api.maybeSingle = function(){ state.single = true; return clone(); };
+
+      function applyFilters(rows){
+        let out = rows.slice();
+        for (const f of filters) {
+          if (f.op === 'eq')  out = out.filter(function(r){ return r && r[f.col] == f.val; });
+          else if (f.op === 'neq') out = out.filter(function(r){ return r && r[f.col] != f.val; });
+          else if (f.op === 'gt')  out = out.filter(function(r){ return r && r[f.col] >  f.val; });
+          else if (f.op === 'gte') out = out.filter(function(r){ return r && r[f.col] >= f.val; });
+          else if (f.op === 'lt')  out = out.filter(function(r){ return r && r[f.col] <  f.val; });
+          else if (f.op === 'lte') out = out.filter(function(r){ return r && r[f.col] <= f.val; });
+          else if (f.op === 'like' || f.op === 'ilike') {
+            const pat = String(f.val).replace(/%/g,'.*').replace(/_/g,'.');
+            const re = new RegExp('^'+pat+'$', f.op === 'ilike' ? 'i' : '');
+            out = out.filter(function(r){ return r && re.test(String(r[f.col] ?? '')); });
+          } else if (f.op === 'in') {
+            out = out.filter(function(r){ return r && f.vals && f.vals.indexOf(r[f.col]) !== -1; });
+          }
+        }
+        if (state.order) {
+          const c = state.order.col, asc = state.order.asc;
+          out.sort(function(a,b){ const x=a&&a[c], y=b&&b[c]; if (x===y) return 0; return (x>y?1:-1) * (asc?1:-1); });
+        }
+        if (state.range) out = out.slice(state.range[0], state.range[1]+1);
+        if (state.limit != null) out = out.slice(0, state.limit);
+        return out;
+      }
+
+      // Each terminal operation returns a Thenable so awaiting the chain works.
+      function exec(method, body){
+        const url = '/api/data/' + encodeURIComponent(table);
+        return new Promise(function(resolve){
+          const opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+          if (body !== undefined) opts.body = JSON.stringify(body);
+          fetch(url, opts).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, status: r.status, j: j }; }).catch(function(){ return { ok: r.ok, status: r.status, j: null }; }); })
+            .then(function(res){
+              if (!res.ok) return resolve({ data: null, error: { message: (res.j && res.j.error) || ('HTTP ' + res.status) }, status: res.status });
+              let data = res.j;
+              if (method === 'GET' && Array.isArray(data)) data = applyFilters(data);
+              if (state.single) data = (Array.isArray(data) ? data[0] : data) || null;
+              resolve({ data: data, error: null, status: res.status });
+            }).catch(function(e){ resolve({ data: null, error: { message: String(e && e.message || e) } }); });
+        });
+      }
+
+      // Make the chain itself awaitable (for SELECT after filters)
+      api.then = function(onF, onR){ return exec('GET').then(onF, onR); };
+
+      // INSERT
+      api.insert = function(values){
+        const payload = Array.isArray(values) ? values : [values];
+        const p = Promise.all(payload.map(function(v){ return exec('POST', v); }))
+          .then(function(results){
+            const errs = results.filter(function(r){ return r.error; });
+            if (errs.length) return { data: null, error: errs[0].error };
+            const data = results.map(function(r){ return r.data; });
+            return { data: state.single ? data[0] : data, error: null };
+          });
+        return Object.assign(p, { select: function(){ return p; }, single: function(){ state.single = true; return p; } });
+      };
+
+      // UPDATE
+      api.update = function(values){
+        const p = exec('GET').then(function(res){
+          if (res.error) return res;
+          const rows = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+          if (!rows.length) return { data: state.single ? null : [], error: null };
+          return Promise.all(rows.map(function(r){
+            const id = r && (r.id || r._id);
+            if (!id) return { data: null, error: { message: 'row missing id' } };
+            return new Promise(function(resolve){
+              fetch('/api/data/' + encodeURIComponent(table) + '/' + encodeURIComponent(id), {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.assign({}, r, values)),
+              }).then(function(rr){ return rr.json().then(function(j){ return { ok: rr.ok, j: j }; }); })
+                .then(function(rr){ resolve(rr.ok ? { data: rr.j, error: null } : { data: null, error: { message: (rr.j && rr.j.error) || 'update failed' } }); })
+                .catch(function(e){ resolve({ data: null, error: { message: String(e) } }); });
+            });
+          })).then(function(results){
+            const errs = results.filter(function(r){ return r.error; });
+            if (errs.length) return { data: null, error: errs[0].error };
+            const data = results.map(function(r){ return r.data; });
+            return { data: state.single ? data[0] : data, error: null };
+          });
+        });
+        return Object.assign(p, { select: function(){ return p; }, single: function(){ state.single = true; return p; }, eq: api.eq });
+      };
+
+      // DELETE
+      api.delete = function(){
+        const p = exec('GET').then(function(res){
+          if (res.error) return res;
+          const rows = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+          return Promise.all(rows.map(function(r){
+            const id = r && (r.id || r._id);
+            if (!id) return { ok: true };
+            return fetch('/api/data/' + encodeURIComponent(table) + '/' + encodeURIComponent(id), { method: 'DELETE' });
+          })).then(function(){ return { data: rows, error: null }; });
+        });
+        return Object.assign(p, { eq: api.eq });
+      };
+
+      api.upsert = api.insert;
+      return api;
+    }
+
+    function makeWeblyDataClient(){
+      const noopSub = { subscribe: function(){ return { unsubscribe: function(){} }; }, unsubscribe: function(){} };
+      const auth = {
+        getUser:    function(){ return Promise.resolve({ data: { user: null }, error: null }); },
+        getSession: function(){ return Promise.resolve({ data: { session: null }, error: null }); },
+        signInWithPassword: function(){ return Promise.resolve({ data: { user: null, session: null }, error: { message: 'auth not configured' } }); },
+        signUp:     function(){ return Promise.resolve({ data: { user: null, session: null }, error: { message: 'auth not configured' } }); },
+        signOut:    function(){ return Promise.resolve({ error: null }); },
+        onAuthStateChange: function(){ return { data: { subscription: { unsubscribe: function(){} } } }; },
+      };
+      const storage = {
+        from: function(){ return {
+          upload: function(){ return Promise.resolve({ data: null, error: { message: 'storage not configured' } }); },
+          getPublicUrl: function(p){ return { data: { publicUrl: '/api/data/_files/' + p } }; },
+          remove: function(){ return Promise.resolve({ data: null, error: null }); },
+        }; },
+      };
+      return {
+        from: function(table){ return buildQuery(table); },
+        auth: auth,
+        storage: storage,
+        channel: function(){ return { on: function(){ return this; }, subscribe: function(){ return noopSub; } }; },
+        removeChannel: function(){},
+        rpc: function(){ return Promise.resolve({ data: null, error: { message: 'rpc not available — use /api/data/*' } }); },
+      };
+    }
+
+    // Always expose a working client. Real Supabase is loaded lazily only if linked.
+    window.supabase = makeWeblyDataClient();
+    window.__WEBLY_DB_READY__ = true;
+    // Expose factory so app code that does createClient(url,key) still works.
+    window.__webly_createClient = function(){ return window.supabase; };
+  })();
+
+  // ───── Safety net: hide AI-generated "DB not configured" error banners ─────
+  // Uses MutationObserver to catch banners that appear AFTER user interaction
+  // (e.g. inside a submit handler), not just on initial load.
+  (function(){
+    const BLOCKED = [
+      'لم يتم تكوين قاعدة البيانات',
+      'يرجى ربط الخدمة',
+      'Supabase is not configured',
+      'Database not configured',
+      'لم يتم تكوين Supabase',
+    ];
+    function isBlocked(text){
+      if (!text) return false;
+      for (let i = 0; i < BLOCKED.length; i++) if (text.indexOf(BLOCKED[i]) !== -1) return true;
+      return false;
+    }
+    function scrubNode(node){
+      try {
+        if (!node || node.nodeType !== 1) return;
+        const text = node.innerText || node.textContent || '';
+        if (!isBlocked(text)) return;
+        // Walk up to find the smallest ancestor whose text is just the banner
+        let target = node;
+        let parent = node.parentElement;
+        while (parent && parent !== document.body) {
+          const ptext = (parent.innerText || parent.textContent || '').trim();
+          // If parent has roughly the same text (banner is its main content), keep climbing
+          if (ptext.length < text.length + 80 && isBlocked(ptext)) {
+            target = parent;
+            parent = parent.parentElement;
+          } else break;
+        }
+        // Replace banner with a friendly inline note instead of removing entirely
+        const note = document.createElement('div');
+        note.setAttribute('data-webly-replaced', '1');
+        note.style.cssText = 'padding:12px 16px;border-radius:12px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);color:#c4b5fd;font-size:13px;text-align:center;margin:8px 0;font-family:Cairo,Inter,system-ui,sans-serif';
+        note.textContent = '✨ قاعدة البيانات الافتراضية مفعّلة — يمكنك المتابعة.';
+        target.parentNode && target.parentNode.replaceChild(note, target);
+      } catch(_) {}
+    }
+    function scrubAll(root){
+      try {
+        const r = root || document.body;
+        if (!r) return;
+        // Quick check: nothing to do if body text doesn't contain any banner
+        const bodyText = r.innerText || r.textContent || '';
+        if (!isBlocked(bodyText)) return;
+        // Find leaf-ish elements containing the text
+        const walker = document.createTreeWalker(r, NodeFilter.SHOW_ELEMENT, null);
+        const candidates = [];
+        let n = walker.nextNode();
+        while (n) {
+          if (n.getAttribute && n.getAttribute('data-webly-replaced')) { n = walker.nextNode(); continue; }
+          const t = n.innerText || n.textContent || '';
+          if (isBlocked(t) && t.length < 400) candidates.push(n);
+          n = walker.nextNode();
+        }
+        // Pick the deepest matches (smallest containers first)
+        candidates.sort(function(a,b){ return (b.children?b.children.length:0) - (a.children?a.children.length:0); });
+        for (let i = 0; i < candidates.length; i++) scrubNode(candidates[i]);
+      } catch(_) {}
+    }
+    function start(){
+      scrubAll();
+      try {
+        const obs = new MutationObserver(function(mutations){
+          for (let i = 0; i < mutations.length; i++) {
+            const m = mutations[i];
+            if (m.addedNodes && m.addedNodes.length) { scrubAll(); return; }
+            if (m.type === 'characterData') { scrubAll(); return; }
+          }
+        });
+        obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+      } catch(_) {}
+    }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(start, 300);
+    else window.addEventListener('DOMContentLoaded', function(){ setTimeout(start, 300); });
+  })();
+</script>
+
+<script>
+  // ───── In-browser module loader ─────
+  const FILES = {"/styles/tailwind.css":"@tailwind base;\n@tailwind components;\n@tailwind utilities;\n","/main.jsx":"import React from 'react';\nimport ReactDOM from 'react-dom/client';\nimport { BrowserRouter } from 'react-router-dom';\nimport App from './App';\nimport './styles/tokens.css';\nimport './styles/tailwind.css'; // We will create this file next.\n\nReactDOM.createRoot(document.getElementById('root')).render(\n  <React.StrictMode>\n    <BrowserRouter>\n      <App />\n    </BrowserRouter>\n  </React.StrictMode>\n);\n","/App.jsx":"import React, { Suspense, lazy } from 'react';\nimport { Routes, Route, useLocation } from 'react-router-dom';\nimport Navbar from './components/Navbar';\nimport Footer from './components/Footer';\nimport ScrollToTop from './components/ScrollToTop';\n\n// Lazy load pages for better performance\nconst Home = lazy(() => import('./pages/Home'));\nconst Archive = lazy(() => import('./pages/Archive'));\nconst PostDetails = lazy(() => import('./pages/PostDetails'));\nconst About = lazy(() => import('./pages/About'));\nconst Contact = lazy(() => import('./pages/Contact'));\nconst Newsletter = lazy(() => import('./pages/Newsletter'));\nconst NotFound = lazy(() => import('./pages/NotFound'));\n\nfunction App() {\n  const location = useLocation();\n\n  return (\n    <div className=\"flex flex-col min-h-screen bg-bg font-sans\">\n      <Navbar key={location.pathname} />\n      <ScrollToTop />\n      <main className=\"flex-grow\">\n        <Suspense fallback={<div className='w-full min-h-screen flex items-center justify-center'><p>جاري التحميل...</p></div>}>\n          <Routes>\n            <Route path=\"/\" element={<Home />} />\n            <Route path=\"/archive\" element={<Archive />} />\n            <Route path=\"/post/:slug\" element={<PostDetails />} />\n            <Route path=\"/about\" element={<About />} />\n            <Route path=\"/contact\" element={<Contact />} />\n            <Route path=\"/newsletter\" element={<Newsletter />} />\n            <Route path=\"*\" element={<NotFound />} />\n          </Routes>\n        </Suspense>\n      </main>\n      <Footer />\n    </div>\n  );\n}\n\nexport default App;\n","/styles/tokens.css":"@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Cairo:wght@300;400;600;700&display=swap');\n\n:root {\n  --bg: #FDFDFD;\n  --surface: #FFFFFF;\n  --border: #EAEAEA;\n  --text: #1a1a1a;\n  --text-muted: #666666;\n  --text-prose: #333333;\n  --accent-1: #8B5CF6;  /* Violet */\n  --accent-2: #10B981;  /* Emerald */\n\n  --font-serif: 'Amiri', serif;\n  --font-sans: 'Cairo', sans-serif;\n\n  --radius-card: 0.75rem;\n  --radius-btn: 0.5rem;\n\n  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);\n  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);\n}\n\nhtml {\n  direction: rtl;\n}\n\nbody {\n  background-color: var(--bg);\n  color: var(--text);\n  font-family: var(--font-sans);\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n}\n\nh1, h2, h3, h4, h5, h6 {\n  font-family: var(--font-serif);\n  font-weight: 700;\n}\n","/lib/theme.js":"export const ui = {\n  section: \"py-16 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8\",\n  container: \"mx-auto max-w-screen-xl\",\n  prose: \"prose prose-lg lg:prose-xl max-w-none prose-headings:font-serif prose-p:font-sans prose-p:text-prose prose-a:text-accent-1 hover:prose-a:text-accent-2 prose-strong:font-semibold prose-blockquote:font-serif prose-blockquote:border-r-4 prose-blockquote:border-accent-1 prose-blockquote:pr-4 prose-blockquote:text-2xl prose-blockquote:font-normal\",\n  h1: \"text-4xl sm:text-5xl lg:text-6xl font-serif font-bold tracking-tight\",\n  h2: \"text-3xl sm:text-4xl lg:text-5xl font-serif font-bold tracking-tight\",\n  btnPrimary: \"inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-accent-1 hover:bg-violet-700 transition-colors duration-300\",\n  btnOutline: \"inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-text bg-surface hover:bg-gray-50 transition-colors duration-300\",\n  input: \"block w-full px-4 py-3 text-base placeholder-gray-500 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-1 focus:border-transparent\",\n  card: \"bg-surface rounded-lg shadow-md overflow-hidden transition-shadow duration-300 hover:shadow-lg\",\n};\n","/components/Navbar.jsx":"import React, { useState } from 'react';\nimport { Link, NavLink } from 'react-router-dom';\nimport { ui } from '../lib/theme';\nimport { Menu, X } from 'lucide-react';\n\nconst navLinks = [\n  { name: 'الرئيسية', path: '/' },\n  { name: 'الأرشيف', path: '/archive' },\n  { name: 'عن الكاتب', path: '/about' },\n  { name: 'اتصل بنا', path: '/contact' },\n];\n\nconst Navbar = () => {\n  const [isOpen, setIsOpen] = useState(false);\n\n  const NavItem = ({ path, name }) => (\n    <NavLink\n      to={path}\n      className={({ isActive }) =>\n        `font-sans text-base font-medium relative hover:text-accent-1 transition-colors duration-300 ${isActive ? 'text-accent-1' : 'text-text'}`\n      }\n      end\n    >\n      {({ isActive }) => (\n        <>\n          {name}\n          {isActive && (\n            <span className=\"absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-accent-1 rounded-full\"></span>\n          )}\n        </>\n      )}\n    </NavLink>\n  );\n\n  return (\n    <header className=\"bg-surface/80 backdrop-blur-lg sticky top-0 z-40 border-b border-border\">\n      <div\n        className={`${ui.container} flex items-center justify-between h-20`}\n      >\n        <Link to=\"/\" className=\"font-serif text-2xl font-bold text-text\">\n          مدوّنتي\n        </Link>\n\n        <nav className=\"hidden md:flex items-center gap-8\">\n          {navLinks.map((link) => (\n            <NavItem key={link.path} {...link} />\n          ))}\n        </nav>\n\n        <div className=\"flex items-center gap-4\">\n            <Link to=\"/newsletter\" className={`${ui.btnPrimary} hidden sm:inline-flex !px-5 !py-2 !text-sm`}>\n                اشترك الآن\n            </Link>\n            <button\n                onClick={() => setIsOpen(!isOpen)}\n                className=\"md:hidden p-2 text-text hover:text-accent-1\"\n                aria-label=\"Toggle menu\"\n            >\n                {isOpen ? <X size={24} /> : <Menu size={24} />}\n            </button>\n        </div>\n      </div>\n\n      {/* Mobile Menu */}\n      {isOpen && (\n        <div className=\"md:hidden bg-surface border-t border-border\">\n          <nav className=\"flex flex-col items-center gap-4 py-8 px-4\">\n            {navLinks.map((link) => (\n              <NavLink\n                key={link.path}\n                to={link.path}\n                onClick={() => setIsOpen(false)}\n                className={({ isActive }) =>\n                  `text-lg font-medium py-2 ${isActive ? 'text-accent-1' : 'text-text'}`\n                }\n                end\n              >\n                {link.name}\n              </NavLink>\n            ))}\n             <Link to=\"/newsletter\" onClick={() => setIsOpen(false)} className={`${ui.btnPrimary} mt-4`}>\n                اشترك في النشرة\n            </Link>\n          </nav>\n        </div>\n      )}\n    </header>\n  );\n};\n\nexport default Navbar;\n\n","/components/Footer.jsx":"import React from 'react';\nimport { Link } from 'react-router-dom';\nimport { ui } from '../lib/theme';\nimport { Github, Twitter, Linkedin } from 'lucide-react';\n\nconst Footer = () => {\n  const currentYear = new Date().getFullYear();\n\n  return (\n    <footer className=\"bg-surface border-t border-border\">\n      <div className={`${ui.container} ${ui.section} !py-12 sm:!py-16 lg:!py-20`}>\n        <div className=\"flex flex-col md:flex-row md:items-center md:justify-between gap-8 text-center md:text-right\">\n          \n          <div className=\"flex flex-col gap-2 items-center md:items-start\">\n            <Link to=\"/\" className=\"font-serif text-2xl font-bold text-text mb-2\">\n              مدوّنتي\n            </Link>\n            <p className=\"text-text-muted max-w-md\">\n              مساحة للتأمل في التقنية، التصميم، وفنون الحياة. مقالات أسبوعية لاستكشاف الأفكار العميقة.\n            </p>\n          </div>\n\n          <div className=\"flex flex-col items-center md:items-end gap-6\">\n            <div className=\"flex items-center justify-center gap-5\">\n              <a href=\"#\" target=\"_blank\" rel=\"noopener noreferrer\" className=\"text-text-muted hover:text-accent-1 transition-colors\"><Twitter size={22} /></a>\n              <a href=\"#\" target=\"_blank\" rel=\"noopener noreferrer\" className=\"text-text-muted hover:text-accent-1 transition-colors\"><Linkedin size={22} /></a>\n              <a href=\"#\" target=\"_blank\" rel=\"noopener noreferrer\" className=\"text-text-muted hover:text-accent-1 transition-colors\"><Github size={22} /></a>\n            </div>\n            <div className='flex gap-6 font-sans text-sm'>\n                <Link to=\"/about\" className=\"text-text-muted hover:text-text\">عن الكاتب</Link>\n                <Link to=\"/archive\" className=\"text-text-muted hover:text-text\">الأرشيف</Link>\n                <Link to=\"/contact\" className=\"text-text-muted hover:text-text\">اتصل بنا</Link>\n            </div>\n          </div>\n\n        </div>\n        <div className=\"mt-12 pt-8 border-t border-border text-center text-sm text-text-muted\">\n          <p>&copy; {currentYear} مدوّنتي. كل الحقوق محفوظة.</p>\n        </div>\n      </div>\n    </footer>\n  );\n};\n\nexport default Footer;\n","/components/ScrollToTop.jsx":"\nimport { useEffect } from 'react';\nimport { useLocation } from 'react-router-dom';\n\nexport default function ScrollToTop() {\n  const { pathname } = useLocation();\n\n  useEffect(() => {\n    window.scrollTo(0, 0);\n  }, [pathname]);\n\n  return null;\n}\n","/pages/Home.jsx":"\nimport React from 'react';\nimport { ui } from '../lib/theme';\n\nexport default function Home() {\n  return (\n    <div className={ui.section}>\n      <div className={ui.container}>\n        <h1 className={ui.h1}>أهلاً بك في مدونتي الشخصية</h1>\n        <p className=\"mt-4 text-xl text-text-muted\">مساحة لمشاركة الأفكار والخبرات التقنية.</p>\n        <div className=\"mt-10 grid gap-8 md:grid-cols-2 lg:grid-cols-3\">\n          {[1, 2, 3].map((i) => (\n            <div key={i} className={ui.card}>\n              <div className=\"p-6\">\n                <h3 className=\"text-xl font-bold mb-2\">مقال تجريبي {i}</h3>\n                <p className=\"text-text-muted mb-4\">هذا نص تجريبي لوصف محتوى المقال الذي سيظهر هنا لاحقاً.</p>\n                <button className=\"text-accent-1 font-semibold\">اقرأ المزيد ←</button>\n              </div>\n            </div>\n          ))}\n        </div>\n      </div>\n    </div>\n  );\n}\n","/pages/Archive.jsx":"\nimport React from 'react';\nimport { ui } from '../lib/theme';\n\nexport default function Archive() {\n  return (\n    <div className={ui.section}>\n      <div className={ui.container}>\n        <h1 className={ui.h2}>أرشيف المقالات</h1>\n        <div className=\"mt-8 space-y-4\">\n          <p className=\"text-text-muted italic\">لا يوجد مقالات حتى الآن.</p>\n        </div>\n      </div>\n    </div>\n  );\n}\n","/pages/PostDetails.jsx":"\nimport React from 'react';\nimport { useParams } from 'react-router-dom';\nimport { ui } from '../lib/theme';\n\nexport default function PostDetails() {\n  const { slug } = useParams();\n  return (\n    <article className={`${ui.section} ${ui.container}`}>\n      <h1 className={ui.h1}>تفاصيل المقال: {slug}</h1>\n      <div className={`${ui.prose} mt-8`}>\n        <p>محتوى المقال سيظهر هنا بناءً على الرابط التعريفي.</p>\n      </div>\n    </article>\n  );\n}\n","/pages/About.jsx":"\nimport React from 'react';\nimport { ui } from '../lib/theme';\n\nexport default function About() {\n  return (\n    <div className={ui.section}>\n      <div className={`${ui.container} max-w-3xl`}>\n        <h1 className={ui.h2}>عن الكاتب</h1>\n        <div className=\"mt-6 text-lg text-text-prose leading-relaxed\">\n          <p>مطور واجهات أمامية وشغوف بمشاركة المعرفة التقنية مع المجتمع العربي.</p>\n        </div>\n      </div>\n    </div>\n  );\n}\n","/pages/Contact.jsx":"\nimport React from 'react';\nimport { ui } from '../lib/theme';\n\nexport default function Contact() {\n  return (\n    <div className={ui.section}>\n      <div className={`${ui.container} max-w-xl`}>\n        <h1 className={ui.h2}>اتصل بنا</h1>\n        <form className=\"mt-8 space-y-4\">\n          <input className={ui.input} placeholder=\"الاسم\" type=\"text\" />\n          <input className={ui.input} placeholder=\"البريد الإلكتروني\" type=\"email\" />\n          <textarea className={ui.input} placeholder=\"رسالتك\" rows=\"4\"></textarea>\n          <button className={ui.btnPrimary} type=\"button\">إرسال</button>\n        </form>\n      </div>\n    </div>\n  );\n}\n","/pages/Newsletter.jsx":"\nimport React from 'react';\nimport { ui } from '../lib/theme';\n\nexport default function Newsletter() {\n  return (\n    <div className={ui.section}>\n      <div className={`${ui.container} text-center max-w-2xl`}>\n        <h1 className={ui.h2}>النشرة البريدية</h1>\n        <p className=\"mt-4 text-text-muted\">اشترك لتصلك أحدث المقالات مباشرة على بريدك الإلكتروني.</p>\n        <div className=\"mt-8 flex gap-2\">\n          <input className={ui.input} placeholder=\"your@email.com\" type=\"email\" />\n          <button className={ui.btnPrimary}>اشترك</button>\n        </div>\n      </div>\n    </div>\n  );\n}\n","/pages/NotFound.jsx":"\nimport React from 'react';\nimport { Link } from 'react-router-dom';\nimport { ui } from '../lib/theme';\n\nexport default function NotFound() {\n  return (\n    <div className={`${ui.section} text-center`}>\n      <h1 className=\"text-9xl font-bold text-accent-1\">404</h1>\n      <p className=\"mt-4 text-2xl\">الصفحة غير موجودة</p>\n      <Link to=\"/\" className={`${ui.btnPrimary} mt-8`}>العودة للرئيسية</Link>\n    </div>\n  );\n}\n"};
+  const ENTRY = "/main.jsx";
+  const moduleCache = Object.create(null);
+
+  function tryResolve(path) {
+    if (FILES[path] !== undefined) return path;
+    for (const ext of ['.jsx', '.tsx', '.js', '.ts', '.css']) {
+      if (FILES[path + ext] !== undefined) return path + ext;
+    }
+    for (const ext of ['.jsx', '.tsx', '.js', '.ts']) {
+      if (FILES[path + '/index' + ext] !== undefined) return path + '/index' + ext;
+    }
+    return null;
+  }
+
+  function resolvePath(from, spec) {
+    // External (bare) — handled via importmap
+    if (!spec.startsWith('.') && !spec.startsWith('/')) return null;
+    const base = from.replace(/[^/]+$/, '');
+    const raw = spec.startsWith('/') ? spec : (base + spec);
+    const segs = [];
+    for (const s of raw.split('/')) {
+      if (s === '' || s === '.') continue;
+      if (s === '..') segs.pop();
+      else segs.push(s);
+    }
+    return tryResolve('/' + segs.join('/'));
+  }
+
+  const NO_DEFAULT_EXTERNALS = new Set([
+    'react-dom/client', 'react-router-dom', 'lucide-react', 'framer-motion',
+    'recharts', 'date-fns', 'zustand', 'nanoid',
+  ]);
+
+  function noDefaultExternalImportPlugin(babel) {
+    const t = babel.types;
+    return { visitor: {
+      ImportDeclaration(path) {
+        const source = path.node.source.value;
+        if (!NO_DEFAULT_EXTERNALS.has(source)) return;
+        const defaultSpecs = path.node.specifiers.filter((s) =>
+          t.isImportDefaultSpecifier(s) || (t.isImportSpecifier(s) && s.imported && s.imported.name === 'default')
+        );
+        if (!defaultSpecs.length) return;
+        const rest = path.node.specifiers.filter((s) => !defaultSpecs.includes(s));
+        const namespaceImports = defaultSpecs.map((s) =>
+          t.importDeclaration([t.importNamespaceSpecifier(t.identifier(s.local.name))], t.stringLiteral(source))
+        );
+        if (rest.length) {
+          path.node.specifiers = rest;
+          path.insertBefore(namespaceImports);
+        } else {
+          path.replaceWithMultiple(namespaceImports);
+        }
+      },
+      ExportNamedDeclaration(path) {
+        const source = path.node.source && path.node.source.value;
+        if (!source || !NO_DEFAULT_EXTERNALS.has(source)) return;
+        const defaultSpecs = path.node.specifiers.filter((s) => s.local && s.local.name === 'default');
+        if (!defaultSpecs.length) return;
+        const rest = path.node.specifiers.filter((s) => !defaultSpecs.includes(s));
+        const replacements = [];
+        for (const spec of defaultSpecs) {
+          const uid = path.scope.generateUidIdentifierBasedOnNode(spec.exported);
+          replacements.push(t.importDeclaration([t.importNamespaceSpecifier(uid)], t.stringLiteral(source)));
+          replacements.push(t.exportNamedDeclaration(null, [t.exportSpecifier(uid, spec.exported)]));
+        }
+        if (rest.length) replacements.push(t.exportNamedDeclaration(null, rest, t.stringLiteral(source)));
+        path.replaceWithMultiple(replacements);
+      },
+    }};
+  }
+
+  function safeReactRouterPlugin(babel) {
+    const t = babel.types;
+    return { visitor: {
+      ImportDeclaration(path) {
+        if (path.node.source.value !== 'react-router-dom') return;
+        const browserRouter = path.node.specifiers.find((s) =>
+          t.isImportSpecifier(s) && s.imported && (s.imported.name || s.imported.value) === 'BrowserRouter'
+        );
+        if (!browserRouter) return;
+        const localName = browserRouter.local.name;
+        const base = path.scope.generateUidIdentifier(localName + 'Base');
+        const useCtx = path.scope.generateUidIdentifier('useInRouterContext');
+        const reactNs = path.scope.generateUidIdentifier('ReactRouterSafeReact');
+        const rest = path.node.specifiers.filter((s) => s !== browserRouter);
+        path.node.specifiers = [
+          t.importSpecifier(base, t.identifier('BrowserRouter')),
+          t.importSpecifier(useCtx, t.identifier('useInRouterContext')),
+          ...rest,
+        ];
+        path.insertBefore(t.importDeclaration([t.importNamespaceSpecifier(reactNs)], t.stringLiteral('react')));
+        path.insertAfter(t.variableDeclaration('const', [t.variableDeclarator(
+          t.identifier(localName),
+          t.functionExpression(null, [t.identifier('props')], t.blockStatement([
+            t.variableDeclaration('let', [t.variableDeclarator(t.identifier('inside'), t.booleanLiteral(false))]),
+            t.tryStatement(
+              t.blockStatement([t.expressionStatement(t.assignmentExpression('=', t.identifier('inside'), t.callExpression(useCtx, [])))]),
+              t.catchClause(t.identifier('_e'), t.blockStatement([])),
+            ),
+            t.ifStatement(t.identifier('inside'), t.returnStatement(t.memberExpression(t.identifier('props'), t.identifier('children')))),
+            t.returnStatement(t.callExpression(
+              t.memberExpression(reactNs, t.identifier('createElement')),
+              [base, t.identifier('props'), t.memberExpression(t.identifier('props'), t.identifier('children'))],
+            )),
+          ])),
+        )]));
+      },
+    }};
+  }
+
+  function localNamedImportFallbackPlugin(currentPath, helperName) {
+    return function(babel) {
+      const t = babel.types;
+      const isLocal = function(source) { return typeof source === 'string' && !!resolvePath(currentPath, source); };
+      const pickCall = function(ns, importedName) {
+        return t.callExpression(t.identifier(helperName), [ns, t.stringLiteral(importedName)]);
+      };
+      return { visitor: {
+        ImportDeclaration(path) {
+          const source = path.node.source.value;
+          if (!isLocal(source) || path.node.importKind === 'type') return;
+          const named = path.node.specifiers.filter((s) => t.isImportSpecifier(s) && s.importKind !== 'type');
+          if (!named.length) return;
+          const keep = path.node.specifiers.filter((s) => !named.includes(s));
+          const ns = path.scope.generateUidIdentifier('webly_mod');
+          const replacements = [t.importDeclaration([t.importNamespaceSpecifier(ns)], t.stringLiteral(source))];
+          if (keep.length) replacements.push(t.importDeclaration(keep, t.stringLiteral(source)));
+          for (const spec of named) {
+            const imported = spec.imported && (spec.imported.name || spec.imported.value);
+            if (!imported) continue;
+            replacements.push(t.variableDeclaration('const', [
+              t.variableDeclarator(spec.local, pickCall(ns, imported)),
+            ]));
+          }
+          path.replaceWithMultiple(replacements);
+        },
+        ExportNamedDeclaration(path) {
+          const source = path.node.source && path.node.source.value;
+          if (!source || !isLocal(source) || !path.node.specifiers.length) return;
+          const ns = path.scope.generateUidIdentifier('webly_reexport');
+          const replacements = [t.importDeclaration([t.importNamespaceSpecifier(ns)], t.stringLiteral(source))];
+          const exportSpecs = [];
+          for (const spec of path.node.specifiers) {
+            const imported = spec.local && (spec.local.name || spec.local.value);
+            if (!imported) continue;
+            const local = path.scope.generateUidIdentifierBasedOnNode(spec.exported);
+            replacements.push(t.variableDeclaration('const', [
+              t.variableDeclarator(local, pickCall(ns, imported)),
+            ]));
+            exportSpecs.push(t.exportSpecifier(local, spec.exported));
+          }
+          if (exportSpecs.length) replacements.push(t.exportNamedDeclaration(null, exportSpecs));
+          path.replaceWithMultiple(replacements);
+        },
+      }};
+    };
+  }
+
+  function transformJs(code, path) {
+    const presets = [['react', { runtime: 'classic' }]];
+    if (/\.tsx?$/.test(path)) presets.push(['typescript', { allExtensions: true, isTSX: true }]);
+    const helperName = '__webly_pick_' + Math.random().toString(36).slice(2, 8);
+    const transformed = Babel.transform(code, {
+      presets,
+      plugins: [noDefaultExternalImportPlugin, safeReactRouterPlugin, localNamedImportFallbackPlugin(path, helperName)],
+      filename: path,
+      sourceType: 'module',
+    }).code;
+    return [
+      'const ' + helperName + '_noop = function(){};',
+      'const ' + helperName + '_wrapHook = function(fn){',
+      '  if (typeof fn !== "function") return fn;',
+      '  return function(){',
+      '    try {',
+      '      const r = fn.apply(this, arguments);',
+      '      if (r === undefined || r === null) return ' + helperName + '_noop;',
+      '      if (typeof r === "object") {',
+      '        return new Proxy(r, { get: function(t, k){ const v = t[k]; return v === undefined ? ' + helperName + '_noop : v; } });',
+      '      }',
+      '      return r;',
+      '    } catch (_e) { return ' + helperName + '_noop; }',
+      '  };',
+      '};',
+      'const ' + helperName + ' = function(mod, name){',
+      '  if (mod && Object.prototype.hasOwnProperty.call(mod, name) && mod[name] !== undefined) return mod[name];',
+      '  if (mod && name in Object(mod) && mod[name] !== undefined) return mod[name];',
+      '  const d = mod && mod.default;',
+      '  if (d && (typeof d === "object" || typeof d === "function") && name in Object(d) && d[name] !== undefined) return d[name];',
+      // Last-resort fallback: if default is callable (likely a hook), wrap it so missing selector results become safe.
+      '  if (typeof d === "function") return ' + helperName + '_wrapHook(d);',
+      '  if (d !== undefined && d !== null) return d;',
+      '  return undefined;',
+      '};',
+      transformed,
+    ].join('\n');
+  }
+
+  function hasDirectNamedExport(code, exportName, path) {
+    let found = false;
+    try {
+      Babel.transform(code, {
+        filename: path,
+        sourceType: 'module',
+        plugins: [function(babel){
+          const t = babel.types;
+          return { visitor: {
+            ExportNamedDeclaration(p) {
+              const node = p.node;
+              if (node.declaration) {
+                const decl = node.declaration;
+                if ((t.isFunctionDeclaration(decl) || t.isClassDeclaration(decl)) && decl.id && decl.id.name === exportName) found = true;
+                if (t.isVariableDeclaration(decl)) {
+                  for (const d of decl.declarations) if (t.isIdentifier(d.id) && d.id.name === exportName) found = true;
+                }
+              }
+              for (const s of node.specifiers || []) {
+                const exported = s.exported && (s.exported.name || s.exported.value);
+                if (exported === exportName) found = true;
+              }
+            },
+          }};
+        }],
+      });
+    } catch (_) {
+      return code.indexOf('export') !== -1 && code.indexOf(exportName) !== -1;
+    }
+    return found;
+  }
+
+  // CSS imports → JS module that injects a <style> tag and exports {}
+  function makeCssModule(cssText, path) {
+    const safe = JSON.stringify(cssText);
+    return [
+      "const __css = " + safe + ";",
+      "const __style = document.createElement('style');",
+      "__style.setAttribute('data-webly-css', " + JSON.stringify(path) + ");",
+      "__style.textContent = __css;",
+      "document.head.appendChild(__style);",
+      "export default __css;",
+    ].join('\n');
+  }
+
+  // Match import / export-from / dynamic import statements (handles single + double quotes)
+  const IMPORT_RE = /(\bimport\s+(?:[\w*\s{},$]+\s+from\s+)?|\bexport\s+\*\s+from\s+|\bexport\s+\{[^}]*\}\s+from\s+|\bimport\s*\(\s*)(["'])([^"']+)(\2)/g;
+
+  // Pull named bindings out of an import/export-from prefix like 'import Foo, { a, b as c } from '
+  function extractNamedBindings(prefix) {
+    const out = [];
+    const braceMatch = prefix && prefix.match(/\{([^}]*)\}/);
+    if (braceMatch) {
+      for (const part of braceMatch[1].split(',')) {
+        const seg = part.trim();
+        if (!seg) continue;
+        const name = seg.split(/\s+as\s+/i)[0].trim();
+        if (name && name !== 'default' && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)) out.push(name);
+      }
+    }
+    return out;
+  }
+
+  // Track which named bindings each local module must expose so we can
+  // backfill missing ones from the default export instead of crashing.
+  const requiredExports = Object.create(null);
+  function noteRequired(modulePath, names) {
+    if (!names.length) return;
+    if (!requiredExports[modulePath]) requiredExports[modulePath] = new Set();
+    for (const n of names) requiredExports[modulePath].add(n);
+  }
+
+  async function loadModule(path) {
+    if (moduleCache[path]) return moduleCache[path];
+    const src = FILES[path];
+    if (src === undefined) throw new Error('Module not found: ' + path);
+
+    let code;
+    if (path.endsWith('.css')) {
+      code = makeCssModule(src, path);
+    } else {
+      code = transformJs(src, path);
+
+      // Find every relative dep and pre-load it (also note named bindings consumers want)
+      const deps = [];
+      let m;
+      const re = new RegExp(IMPORT_RE.source, 'g');
+      while ((m = re.exec(code)) !== null) {
+        const prefix = m[1];
+        const spec = m[3];
+        const resolved = resolvePath(path, spec);
+        if (resolved) {
+          deps.push({ spec, resolved });
+          noteRequired(resolved, extractNamedBindings(prefix));
+        }
+      }
+      const depUrls = {};
+      for (const d of deps) {
+        depUrls[d.spec] = await loadModule(d.resolved);
+      }
+      const re2 = new RegExp(IMPORT_RE.source, 'g');
+      code = code.replace(re2, function(_full, prefix, q, spec, q2){
+        if (depUrls[spec]) return prefix + q + depUrls[spec] + q2;
+        return _full;
+      });
+
+      // Shim 1: ensure a default export exists so 'import X from "./mod"' never fails.
+      const hasDefault = /export\s+default\b/.test(code)
+        || /export\s*\{[^}]*\bdefault\b[^}]*\}/.test(code)
+        || /export\s*\{[^}]*\bas\s+default\b[^}]*\}/.test(code);
+      if (!hasDefault) {
+        code += "\n;export default {};\n";
+      }
+
+      // Named local imports are converted to namespace imports above, so we no
+      // longer mutate a module's export table here. Mutating exports caused hard
+      // browser syntax errors like "Duplicate export of 'seedProducts'".
+    }
+
+    const blob = new Blob([code], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob);
+    moduleCache[path] = url;
+    return url;
+  }
+
+  // Pre-pass: scan every file's raw source so that requiredExports is fully
+  // populated BEFORE any module is transformed/cached. Without this, a module
+  // loaded earlier than one of its consumers wouldn't get the backfill.
+  function prescanRequiredExports() {
+    for (const filePath of Object.keys(FILES)) {
+      if (!/\.(jsx?|tsx?)$/.test(filePath)) continue;
+      const code = FILES[filePath];
+      const re = new RegExp(IMPORT_RE.source, 'g');
+      let m;
+      while ((m = re.exec(code)) !== null) {
+        const prefix = m[1];
+        const spec = m[3];
+        const resolved = resolvePath(filePath, spec);
+        if (resolved) noteRequired(resolved, extractNamedBindings(prefix));
+      }
+    }
+  }
+
+  (async () => {
+    try {
+      prescanRequiredExports();
+      const entryUrl = await loadModule(ENTRY);
+      await import(entryUrl);
+    } catch (err) {
+      console.error('[Webly]', err);
+      const msg = (err && err.stack) ? err.stack : String(err);
+      document.getElementById('root').innerHTML =
+        '<div style="padding:24px;font-family:ui-monospace,monospace;direction:ltr;text-align:left;min-height:100vh;background:#0f172a">' +
+        '<h2 style="color:#f87171;margin:0 0 12px">Webly Runtime Error</h2>' +
+        '<pre style="white-space:pre-wrap;color:#fecaca;background:#1e293b;padding:16px;border-radius:8px;border:1px solid #b91c1c;font-size:13px">' +
+        msg.replace(/[&<>]/g, function(c){ return ({ '&':'&amp;','<':'&lt;','>':'&gt;' })[c]; }) +
+        '</pre></div>';
+    }
+  })();
+</script>
+</body>
+</html>
